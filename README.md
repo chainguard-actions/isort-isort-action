@@ -9,6 +9,7 @@ Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at
 | Version | Tag | Upstream commit |
 |---------|-----|-----------------|
 | v1.0.0 | [`v1.0.0`](https://github.com/chainguard-actions/isort-isort-action/tree/v1.0.0) | [`f555d1d`](https://github.com/isort/isort-action/commit/f555d1d11ca0529654eb6d1f017f9e4a269ffa7f) |
+| v1.1.1 | [`v1.1.1`](https://github.com/chainguard-actions/isort-isort-action/tree/v1.1.1) | [`24d8a7a`](https://github.com/isort/isort-action/commit/24d8a7a51d33ca7f36c3f23598dafa33f7071326) |
 
 ## Privacy
 
