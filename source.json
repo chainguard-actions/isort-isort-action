@@ -1,0 +1,11 @@
+{
+  "owner": "isort",
+  "repo": "isort-action",
+  "version": "v1.0.0",
+  "commit_sha": "f555d1d11ca0529654eb6d1f017f9e4a269ffa7f",
+  "url": "https://github.com/isort/isort-action",
+  "policy_sha": "d636be7e43ef829af6e853da6b3c7566db9f72fe",
+  "test_policy_sha": "843adf9e4b8f85d0c08b27b9d0b09dd094b54702",
+  "test_agent_version": "1",
+  "harden_agent_version": "1"
+}
