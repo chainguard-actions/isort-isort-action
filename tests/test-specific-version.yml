@@ -1,0 +1,34 @@
+name: Test isort with specific version
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create a properly sorted Python file
+        run: |
+          mkdir -p /tmp/test-versioned
+          cat > /tmp/test-versioned/main.py << 'EOF'
+          import os
+          import sys
+          EOF
+
+      - id: action
+        uses: .
+        with:
+          isortVersion: "5.13.2"
+          sortPaths: /tmp/test-versioned
+          configuration: "--check-only --diff"
+
+      - name: Assert specific version was installed and ran successfully
+        run: |
+          installed_version=$(isort --version-number 2>/dev/null || isort --version 2>/dev/null | head -1)
+          echo "Installed isort version: $installed_version"
+          if echo "$installed_version" | grep -q "5.13.2"; then
+            echo "PASS: correct version 5.13.2 is installed"
+          else
+            echo "FAIL: expected version 5.13.2, got: $installed_version"
+            exit 1
+          fi

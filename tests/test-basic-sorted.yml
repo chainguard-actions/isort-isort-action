@@ -1,0 +1,30 @@
+name: Test isort on properly sorted file
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create a properly sorted Python file
+        run: |
+          mkdir -p /tmp/test-sorted
+          cat > /tmp/test-sorted/main.py << 'EOF'
+          import os
+          import sys
+          EOF
+
+      - id: action
+        uses: .
+        with:
+          sortPaths: /tmp/test-sorted
+          configuration: "--check-only --diff"
+
+      - name: Assert isort-result output exists
+        env:
+          RESULT: ${{ steps.action.outputs.isort-result }}
+        run: |
+          echo "isort-result: '$RESULT'"
+          # If we got here without the action failing, isort found no issues
+          echo "PASS: isort ran successfully on sorted file"

@@ -1,0 +1,40 @@
+name: Test isort in-place sorting
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create a Python file with unsorted imports
+        run: |
+          mkdir -p /tmp/test-inplace
+          cat > /tmp/test-inplace/main.py << 'EOF'
+          import sys
+          import os
+          EOF
+
+      - id: action
+        uses: .
+        with:
+          sortPaths: /tmp/test-inplace
+          # Use --atomic to sort in place without --check-only so it succeeds
+          configuration: "--atomic"
+
+      - name: Assert file was sorted
+        run: |
+          echo "Checking that isort ran and sorted the file..."
+          content=$(cat /tmp/test-inplace/main.py)
+          echo "File content after sort:"
+          echo "$content"
+          # After sorting, 'import os' should come before 'import sys'
+          os_line=$(grep -n "import os" /tmp/test-inplace/main.py | cut -d: -f1)
+          sys_line=$(grep -n "import sys" /tmp/test-inplace/main.py | cut -d: -f1)
+          echo "os line: $os_line, sys line: $sys_line"
+          if [ "$os_line" -lt "$sys_line" ]; then
+            echo "PASS: imports are sorted correctly (os before sys)"
+          else
+            echo "FAIL: imports are not sorted correctly"
+            exit 1
+          fi

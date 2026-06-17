@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+configuration=$1
+sort_paths=$2
+
+# Split space-separated arguments into arrays safely
+IFS=' ' read -ra config_args <<< "$configuration"
+IFS=' ' read -ra path_args <<< "$sort_paths"
+
+echo "Running isort $configuration $sort_paths"
+isort_result=$(isort "${config_args[@]}" "${path_args[@]}")
+exit_code=$?
+
+echo "::set-output name=isort-output::${isort_result}"
+exit $exit_code
