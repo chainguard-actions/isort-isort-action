@@ -1,0 +1,58 @@
+name: Test specific isort version
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create a well-sorted Python file
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/tests/fixtures/versioned"
+          cat > "$GITHUB_WORKSPACE/tests/fixtures/versioned/good.py" << 'EOF'
+          # These imports are properly sorted and should pass isort
+          import datetime
+          from dataclasses import dataclass
+
+
+          @dataclass()
+          class Foo:
+              a: datetime.datetime
+
+
+          foo = Foo(a=datetime.datetime.now())
+
+          if __name__ == "__main__":
+              print(foo)
+          EOF
+
+      - id: action
+        uses: .
+        with:
+          isort-version: "5.13.2"
+          configuration: --check-only --diff
+          sort-paths: tests/fixtures/versioned/good.py
+
+      - name: Assert action succeeded with specific version
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "outcome: $OUTCOME"
+          if [ "$OUTCOME" != "success" ]; then
+            echo "FAIL: expected action to succeed with specific isort version, but got outcome=$OUTCOME"
+            exit 1
+          fi
+          echo "PASS: action succeeded with specific isort version"
+
+      - name: Verify isort version was installed
+        run: |
+          source "${HOME}/isort-venv/bin/activate"
+          INSTALLED=$(isort --version-number 2>&1 || isort --version 2>&1)
+          echo "Installed isort version: $INSTALLED"
+          if echo "$INSTALLED" | grep -q "5.13.2"; then
+            echo "PASS: correct isort version installed"
+          else
+            echo "FAIL: expected isort 5.13.2 but got: $INSTALLED"
+            exit 1
+          fi

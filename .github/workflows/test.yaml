@@ -1,0 +1,42 @@
+name: Run isort
+on:
+  - push
+  - pull_request
+
+permissions: {}
+
+jobs:
+  test:
+    runs-on: ${{matrix.os}}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - id: imports-properly-sorted
+        uses: ./
+        with:
+          sortPaths: test/good.py
+      - name: assert-sorted-imports-return-no-output
+        env:
+          ISORT_RESULT: ${{ steps.imports-properly-sorted.outputs.isort-result }}
+        run: |
+          output="$ISORT_RESULT"
+          if ! [[ $output == "" ]]; then
+            exit 1
+          fi
+      - id: imports-improperly-sorted
+        uses: ./
+        with:
+          sortPaths: test/bad.py
+          configuration: --diff
+      - name: assert-improperly-sorted-imports-return-output
+        env:
+          ISORT_RESULT: ${{ steps.imports-improperly-sorted.outputs.isort-result }}
+        run: |
+          output="$ISORT_RESULT"
+          expected_substring="+import datetime"
+          if ! [[ $output == *"${expected_substring}"* ]]; then
+            exit 1
+          fi

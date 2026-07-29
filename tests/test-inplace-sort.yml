@@ -1,0 +1,57 @@
+name: Test in-place sorting mode
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create a badly-sorted Python file for in-place fixing
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/tests/fixtures/inplace"
+          cat > "$GITHUB_WORKSPACE/tests/fixtures/inplace/unsorted.py" << 'EOF'
+          import time
+          import datetime
+
+          print(time.time())
+          print(datetime.datetime.now())
+          EOF
+
+      - id: action
+        uses: .
+        with:
+          # No --check-only: actually sort the file in place
+          configuration: ""
+          sort-paths: tests/fixtures/inplace/unsorted.py
+
+      - name: Assert action succeeded (in-place sort)
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "outcome: $OUTCOME"
+          if [ "$OUTCOME" != "success" ]; then
+            echo "FAIL: expected in-place sort to succeed, but got outcome=$OUTCOME"
+            exit 1
+          fi
+          echo "PASS: in-place sort succeeded"
+
+      - name: Assert file was sorted correctly
+        run: |
+          echo "File contents after sorting:"
+          cat "$GITHUB_WORKSPACE/tests/fixtures/inplace/unsorted.py"
+          # After sorting, datetime should come before time alphabetically
+          DATETIME_LINE=$(grep -n "^import datetime" "$GITHUB_WORKSPACE/tests/fixtures/inplace/unsorted.py" | cut -d: -f1)
+          TIME_LINE=$(grep -n "^import time" "$GITHUB_WORKSPACE/tests/fixtures/inplace/unsorted.py" | cut -d: -f1)
+          echo "datetime import line: $DATETIME_LINE"
+          echo "time import line: $TIME_LINE"
+          if [ -z "$DATETIME_LINE" ] || [ -z "$TIME_LINE" ]; then
+            echo "FAIL: could not find expected import lines"
+            exit 1
+          fi
+          if [ "$DATETIME_LINE" -lt "$TIME_LINE" ]; then
+            echo "PASS: imports are sorted correctly (datetime before time)"
+          else
+            echo "FAIL: imports are not sorted correctly"
+            exit 1
+          fi

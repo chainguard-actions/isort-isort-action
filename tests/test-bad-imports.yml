@@ -1,0 +1,47 @@
+name: Test bad imports - isort detects unsorted imports
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create a badly-sorted Python file
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/tests/fixtures/bad"
+          cat > "$GITHUB_WORKSPACE/tests/fixtures/bad/bad.py" << 'EOF'
+          # These imports are improperly sorted and should fail isort
+          import time
+          from dataclasses import dataclass, field
+          import datetime
+
+          @dataclass()
+          class Foo:
+              a: datetime.datetime
+
+          foo = Foo(a=datetime.datetime.now())
+
+          if __name__ == "__main__":
+              print(foo)
+          EOF
+
+      - id: action
+        uses: .
+        with:
+          configuration: --check-only --diff
+          sort-paths: tests/fixtures/bad/bad.py
+        continue-on-error: true
+
+      - name: Assert action failed due to unsorted imports
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+          RESULT: ${{ steps.action.outputs.isort-result }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "isort-result: $RESULT"
+          if [ "$OUTCOME" != "failure" ]; then
+            echo "FAIL: expected action to fail on badly-sorted imports, but got outcome=$OUTCOME"
+            exit 1
+          fi
+          echo "PASS: action correctly failed on badly-sorted imports"

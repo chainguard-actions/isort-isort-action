@@ -1,0 +1,46 @@
+name: Test deprecated inputs - isortVersion and sortPaths
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create a well-sorted Python file
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/tests/fixtures/deprecated"
+          cat > "$GITHUB_WORKSPACE/tests/fixtures/deprecated/good.py" << 'EOF'
+          # These imports are properly sorted and should pass isort
+          import datetime
+          from dataclasses import dataclass
+
+
+          @dataclass()
+          class Foo:
+              a: datetime.datetime
+
+
+          foo = Foo(a=datetime.datetime.now())
+
+          if __name__ == "__main__":
+              print(foo)
+          EOF
+
+      - id: action
+        uses: .
+        with:
+          isortVersion: "latest"
+          sortPaths: tests/fixtures/deprecated/good.py
+          configuration: --check-only --diff
+
+      - name: Assert action succeeded using deprecated inputs
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "outcome: $OUTCOME"
+          if [ "$OUTCOME" != "success" ]; then
+            echo "FAIL: expected action to succeed with deprecated inputs, but got outcome=$OUTCOME"
+            exit 1
+          fi
+          echo "PASS: action succeeded using deprecated isortVersion and sortPaths inputs"
