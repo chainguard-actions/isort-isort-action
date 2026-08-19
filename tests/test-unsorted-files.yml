@@ -1,0 +1,38 @@
+name: Test unsorted files detection
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create an unsorted Python file
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/tests/tmp-unsorted"
+          cat > "$GITHUB_WORKSPACE/tests/tmp-unsorted/unsorted_example.py" << 'EOF'
+          import sys
+          import os
+          EOF
+
+      - id: action
+        uses: .
+        with:
+          sortPaths: "tests/tmp-unsorted"
+          configuration: "--check-only --diff"
+        continue-on-error: true
+
+      - name: Assert isort detected unsorted imports
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+          ACTUAL: ${{ steps.action.outputs.isort-result }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "actual: '$ACTUAL'"
+          # isort --check-only should fail (exit non-zero) when imports are unsorted
+          if [ "$OUTCOME" != "failure" ]; then
+            echo "FAIL: expected isort to fail on unsorted imports, but outcome was: $OUTCOME"
+            exit 1
+          fi
+          echo "PASS: isort correctly detected unsorted imports"

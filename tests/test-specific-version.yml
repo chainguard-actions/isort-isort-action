@@ -1,6 +1,7 @@
-name: Test isort with specific version
+name: Test specific isort version
 on:
   workflow_dispatch:
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -9,8 +10,8 @@ jobs:
 
       - name: Create a properly sorted Python file
         run: |
-          mkdir -p /tmp/test-versioned
-          cat > /tmp/test-versioned/main.py << 'EOF'
+          mkdir -p "$GITHUB_WORKSPACE/tests/tmp-version"
+          cat > "$GITHUB_WORKSPACE/tests/tmp-version/example.py" << 'EOF'
           import os
           import sys
           EOF
@@ -19,16 +20,26 @@ jobs:
         uses: .
         with:
           isortVersion: "5.13.2"
-          sortPaths: /tmp/test-versioned
+          sortPaths: "tests/tmp-version"
           configuration: "--check-only --diff"
 
-      - name: Assert specific version was installed and ran successfully
+      - name: Assert action succeeded with specific version
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
         run: |
-          installed_version=$(isort --version-number 2>/dev/null || isort --version 2>/dev/null | head -1)
-          echo "Installed isort version: $installed_version"
-          if echo "$installed_version" | grep -q "5.13.2"; then
-            echo "PASS: correct version 5.13.2 is installed"
-          else
-            echo "FAIL: expected version 5.13.2, got: $installed_version"
+          echo "outcome: $OUTCOME"
+          if [ "$OUTCOME" != "success" ]; then
+            echo "FAIL: expected action to succeed with specific isort version, but outcome was: $OUTCOME"
             exit 1
           fi
+          echo "PASS: isort ran successfully with specific version"
+
+      - name: Verify installed isort version
+        run: |
+          INSTALLED=$(pip3 show isort | grep Version | awk '{print $2}')
+          echo "Installed isort version: $INSTALLED"
+          if [ "$INSTALLED" != "5.13.2" ]; then
+            echo "FAIL: expected isort version 5.13.2 but got $INSTALLED"
+            exit 1
+          fi
+          echo "PASS: correct isort version installed"

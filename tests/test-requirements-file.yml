@@ -1,0 +1,47 @@
+name: Test with requirements file
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create test files
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/tests/tmp-reqs"
+          # Create a simple requirements file with a known package
+          echo "six==1.16.0" > "$GITHUB_WORKSPACE/tests/tmp-reqs/requirements.txt"
+          # Create a sorted Python file that imports the package
+          cat > "$GITHUB_WORKSPACE/tests/tmp-reqs/example.py" << 'EOF'
+          import os
+
+          import six
+          EOF
+
+      - id: action
+        uses: .
+        with:
+          sortPaths: "tests/tmp-reqs"
+          configuration: "--check-only --diff"
+          requirementsFiles: "tests/tmp-reqs/requirements.txt"
+
+      - name: Assert action succeeded with requirements file
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "outcome: $OUTCOME"
+          if [ "$OUTCOME" != "success" ]; then
+            echo "FAIL: expected action to succeed with requirements file, but outcome was: $OUTCOME"
+            exit 1
+          fi
+          echo "PASS: isort ran successfully with requirements file"
+
+      - name: Verify the package from requirements was installed
+        run: |
+          python3 -c "import six; print('six version:', six.__version__)" || {
+            echo "FAIL: package 'six' from requirements.txt was not installed"
+            exit 1
+          }
+          echo "PASS: requirements file was processed correctly"

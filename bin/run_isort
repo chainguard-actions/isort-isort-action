@@ -3,9 +3,10 @@
 configuration=$1
 sort_paths=$2
 
-# Split space-separated arguments into arrays safely
-IFS=' ' read -ra config_args <<< "$configuration"
-IFS=' ' read -ra path_args <<< "$sort_paths"
+# Build argument arrays to avoid unquoted word-splitting while preserving
+# the ability to pass multiple flags/paths
+read -ra config_args <<< "$configuration"
+read -ra path_args <<< "$sort_paths"
 
 echo "Running isort $configuration $sort_paths"
 isort_result=$(isort "${config_args[@]}" "${path_args[@]}")

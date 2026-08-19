@@ -1,6 +1,7 @@
-name: Test isort on properly sorted file
+name: Test basic usage - already sorted files
 on:
   workflow_dispatch:
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -9,22 +10,25 @@ jobs:
 
       - name: Create a properly sorted Python file
         run: |
-          mkdir -p /tmp/test-sorted
-          cat > /tmp/test-sorted/main.py << 'EOF'
+          mkdir -p "$GITHUB_WORKSPACE/tests/tmp-sorted"
+          cat > "$GITHUB_WORKSPACE/tests/tmp-sorted/sorted_example.py" << 'EOF'
           import os
           import sys
+
+          import requests
           EOF
 
       - id: action
         uses: .
         with:
-          sortPaths: /tmp/test-sorted
+          sortPaths: "tests/tmp-sorted"
           configuration: "--check-only --diff"
 
       - name: Assert isort-result output exists
         env:
-          RESULT: ${{ steps.action.outputs.isort-result }}
+          ACTUAL: ${{ steps.action.outputs.isort-result }}
         run: |
-          echo "isort-result: '$RESULT'"
-          # If we got here without the action failing, isort found no issues
-          echo "PASS: isort ran successfully on sorted file"
+          echo "actual: '$ACTUAL'"
+          # For already-sorted files, isort --check-only --diff should produce no diff output
+          # The output may be empty or contain no diff markers
+          echo "PASS: isort ran successfully on sorted files"

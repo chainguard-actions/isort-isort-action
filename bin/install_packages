@@ -12,10 +12,9 @@ else
 fi
 
 if [ -n "$requirements_files" ]; then
-    IFS=' ' read -ra files_array <<< "$requirements_files"
-    for file in "${files_array[@]}"
-    do
+    while IFS= read -r file; do
+        [ -z "$file" ] && continue
         echo "Running pip install -r $file"
         pip install -r "$file" > /dev/null 2>&1
-    done
+    done <<< "$(printf '%s\n' "$requirements_files")"
 fi
