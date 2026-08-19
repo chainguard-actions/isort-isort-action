@@ -1,0 +1,28 @@
+name: Test custom isort configuration
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create a sorted Python file
+        run: |
+          mkdir -p /tmp/custom_config_code
+          printf 'import os\nimport sys\n' > /tmp/custom_config_code/module.py
+
+      - id: action
+        uses: .
+        with:
+          isortVersion: "latest"
+          sortPaths: /tmp/custom_config_code
+          configuration: "--check-only --quiet"
+
+      - name: Assert action succeeded with custom configuration
+        env:
+          RESULT: ${{ steps.action.outputs.isort-result }}
+        run: |
+          echo "isort-result: $RESULT"
+          echo "PASS: isort ran with custom configuration (--check-only --quiet)"

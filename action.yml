@@ -45,22 +45,33 @@ runs:
         curl "${args[@]}" \
           -d "{\"repository\":\"${GITHUB_REPOSITORY}\",\"action\":\"${GITHUB_ACTION_REPOSITORY}\"}" \
           "https://actions.enforce.dev/actions/v1/record" >/dev/null 2>&1 || true
-    - env:
-        ACTION_PATH: ${{ github.action_path }}
-      run: "$ACTION_PATH/bin/ensure_python"
+    - run: "$GITHUB_ACTION_PATH/bin/ensure_python"
       shell: bash
     - env:
-        ACTION_PATH: ${{ github.action_path }}
-        ISORT_VERSION: ${{ inputs.isortVersion }}
-        REQUIREMENTS_FILES: ${{ inputs.requirementsFiles }}
-      run: "$ACTION_PATH/bin/install_packages \"$ISORT_VERSION\" ${REQUIREMENTS_FILES:+\"$REQUIREMENTS_FILES\"}"
+        INPUT_ISORT_VERSION: ${{ inputs.isortVersion }}
+        INPUT_REQUIREMENTS_FILES: ${{ inputs.requirementsFiles }}
+      run: |
+        req_files=()
+        if [ -n "$INPUT_REQUIREMENTS_FILES" ]; then
+          while IFS= read -r -d '' t; do req_files+=("$t"); done \
+            < <(printf '%s' "$INPUT_REQUIREMENTS_FILES" | xargs printf '%s\0')
+        fi
+        "$GITHUB_ACTION_PATH/bin/install_packages" "$INPUT_ISORT_VERSION" "${req_files[@]}"
       shell: bash
     - id: run-isort
       env:
-        ACTION_PATH: ${{ github.action_path }}
-        CONFIGURATION: ${{ inputs.configuration }}
-        SORT_PATHS: ${{ inputs.sortPaths }}
+        INPUT_CONFIGURATION: ${{ inputs.configuration }}
+        INPUT_SORT_PATHS: ${{ inputs.sortPaths }}
       run: |
-        read -ra CONF_ARGS <<< "$CONFIGURATION"
-        "$ACTION_PATH/bin/run_isort" "${CONF_ARGS[@]}" "$SORT_PATHS"
+        cfg_args=()
+        if [ -n "$INPUT_CONFIGURATION" ]; then
+          while IFS= read -r -d '' t; do cfg_args+=("$t"); done \
+            < <(printf '%s' "$INPUT_CONFIGURATION" | xargs printf '%s\0')
+        fi
+        sort_paths=()
+        if [ -n "$INPUT_SORT_PATHS" ]; then
+          while IFS= read -r -d '' t; do sort_paths+=("$t"); done \
+            < <(printf '%s' "$INPUT_SORT_PATHS" | xargs printf '%s\0')
+        fi
+        "$GITHUB_ACTION_PATH/bin/run_isort" "${cfg_args[@]}" "${sort_paths[@]}"
       shell: bash

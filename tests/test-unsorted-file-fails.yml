@@ -1,0 +1,35 @@
+name: Test unsorted file fails isort check
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create an unsorted Python file
+        run: |
+          mkdir -p /tmp/unsorted_code
+          printf 'import sys\nimport os\n' > /tmp/unsorted_code/unsorted.py
+
+      - id: action
+        uses: .
+        with:
+          isortVersion: "latest"
+          sortPaths: /tmp/unsorted_code
+          configuration: "--check-only --diff"
+        continue-on-error: true
+
+      - name: Assert action failed due to unsorted imports
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+          RESULT: ${{ steps.action.outputs.isort-result }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "isort-result: $RESULT"
+          if [ "$OUTCOME" != "failure" ]; then
+            echo "FAIL: expected action to fail on unsorted imports, but got outcome=$OUTCOME"
+            exit 1
+          fi
+          echo "PASS: action correctly failed on unsorted imports"

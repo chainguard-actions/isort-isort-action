@@ -1,0 +1,36 @@
+name: Test requirements files installation
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create requirements file and sorted Python file
+        run: |
+          mkdir -p /tmp/req_code
+          echo "six" > /tmp/req_code/requirements.txt
+          printf 'import os\nimport sys\n' > /tmp/req_code/app.py
+
+      - id: action
+        uses: .
+        with:
+          isortVersion: "latest"
+          sortPaths: /tmp/req_code/app.py
+          configuration: "--check-only --diff"
+          requirementsFiles: /tmp/req_code/requirements.txt
+
+      - name: Assert action succeeded with requirements installed
+        env:
+          RESULT: ${{ steps.action.outputs.isort-result }}
+        run: |
+          echo "isort-result: $RESULT"
+          INSTALLED=$(pip3 show six 2>/dev/null | grep '^Name:' | awk '{print $2}')
+          echo "installed package: $INSTALLED"
+          if [ -z "$INSTALLED" ]; then
+            echo "FAIL: requirements package 'six' was not installed"
+            exit 1
+          fi
+          echo "PASS: requirements installed and isort check passed"

@@ -1,0 +1,43 @@
+name: Test fix mode - sort imports in place
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create a Python file with unsorted imports
+        run: |
+          mkdir -p /tmp/fix_project
+          cat > /tmp/fix_project/main.py << 'EOF'
+          import sys
+          import os
+          EOF
+
+      - id: action
+        uses: .
+        with:
+          isortVersion: latest
+          sortPaths: /tmp/fix_project
+          configuration: ""
+
+      - name: Assert isort fixed the file
+        run: |
+          content=$(cat /tmp/fix_project/main.py)
+          echo "File content after isort:"
+          echo "$content"
+          # After sorting, 'import os' should come before 'import sys'
+          os_line=$(grep -n "import os" /tmp/fix_project/main.py | cut -d: -f1)
+          sys_line=$(grep -n "import sys" /tmp/fix_project/main.py | cut -d: -f1)
+          echo "os line: $os_line, sys line: $sys_line"
+          if [ -z "$os_line" ] || [ -z "$sys_line" ]; then
+            echo "FAIL: expected both 'import os' and 'import sys' in file"
+            exit 1
+          fi
+          if [ "$os_line" -gt "$sys_line" ]; then
+            echo "FAIL: expected 'import os' (line $os_line) to come before 'import sys' (line $sys_line)"
+            exit 1
+          fi
+          echo "PASS: isort correctly sorted imports in place"

@@ -1,0 +1,28 @@
+name: Test sorted file passes isort check
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create a properly sorted Python file
+        run: |
+          mkdir -p /tmp/sorted_code
+          printf 'import os\nimport sys\n' > /tmp/sorted_code/sorted.py
+
+      - id: action
+        uses: .
+        with:
+          isortVersion: "latest"
+          sortPaths: /tmp/sorted_code
+          configuration: "--check-only --diff"
+
+      - name: Assert action succeeded
+        env:
+          RESULT: ${{ steps.action.outputs.isort-result }}
+        run: |
+          echo "isort-result: $RESULT"
+          echo "PASS: isort check passed on sorted file"

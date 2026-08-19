@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 isort_version=$1
-requirements_files=$2
+shift
 
 echo "::group::Install isort"
 if [ -z "$isort_version" ] || [ "$isort_version" == "latest" ]; then
@@ -13,9 +13,9 @@ else
 fi
 echo "::endgroup::"
 
-if [ -n "$requirements_files" ]; then
+if [ "$#" -gt 0 ]; then
     echo "::group::Install modules from requirements arg"
-    for file in $requirements_files; do
+    for file in "$@"; do
         pip install -r "$file"
     done
     echo "::endgroup::"

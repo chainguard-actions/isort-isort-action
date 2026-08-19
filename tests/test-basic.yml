@@ -1,0 +1,26 @@
+name: Test basic usage - default inputs
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create a sorted Python file
+        run: |
+          mkdir -p /tmp/basic_code
+          printf 'import os\nimport sys\n' > /tmp/basic_code/hello.py
+
+      - id: action
+        uses: .
+        with:
+          sortPaths: /tmp/basic_code
+
+      - name: Assert action succeeded with default configuration
+        env:
+          RESULT: ${{ steps.action.outputs.isort-result }}
+        run: |
+          echo "isort-result: $RESULT"
+          echo "PASS: action ran with default inputs and sorted file passed"
