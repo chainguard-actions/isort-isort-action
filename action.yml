@@ -87,21 +87,29 @@ runs:
 
       shell: bash
     - env:
-        ISORT_VERSION: ${{ inputs.isort-version || inputs.isortVersion }}
-        REQUIREMENTS_FILES: ${{ inputs.requirements-files || inputs.requirementsFiles }}
+        INPUT_ISORT_VERSION: ${{ inputs.isort-version || inputs.isortVersion }}
+        INPUT_REQUIREMENTS_FILES: ${{ inputs.requirements-files || inputs.requirementsFiles }}
       run: |
-        "$GITHUB_ACTION_PATH/bin/install_packages" "$ISORT_VERSION" ${REQUIREMENTS_FILES:+"$REQUIREMENTS_FILES"}
+        "$GITHUB_ACTION_PATH/bin/install_packages" "$INPUT_ISORT_VERSION" "$INPUT_REQUIREMENTS_FILES"
       shell: bash
     - run: echo "::add-matcher::$GITHUB_ACTION_PATH/isort-matcher.json"
       shell: bash
     - id: run-isort
       env:
-        ISORT_CONFIGURATION: ${{ inputs.configuration }}
-        ISORT_SORT_PATHS: ${{ inputs.sort-paths || inputs.sortPaths }}
+        INPUT_CONFIGURATION: ${{ inputs.configuration }}
+        INPUT_SORT_PATHS: ${{ inputs.sort-paths || inputs.sortPaths }}
       run: |
-        # Split configuration flags safely into an array to prevent shell injection
-        read -ra config_flags <<< "$ISORT_CONFIGURATION"
-        "$GITHUB_ACTION_PATH/bin/run_isort" "${config_flags[@]}" ${ISORT_SORT_PATHS:+"$ISORT_SORT_PATHS"}
+        cfg_args=()
+        if [ -n "$INPUT_CONFIGURATION" ]; then
+          while IFS= read -r -d '' t; do cfg_args+=("$t"); done \
+            < <(printf '%s' "$INPUT_CONFIGURATION" | xargs printf '%s\0')
+        fi
+        path_args=()
+        if [ -n "$INPUT_SORT_PATHS" ]; then
+          while IFS= read -r -d '' t; do path_args+=("$t"); done \
+            < <(printf '%s' "$INPUT_SORT_PATHS" | xargs printf '%s\0')
+        fi
+        "$GITHUB_ACTION_PATH/bin/run_isort" "${cfg_args[@]}" "${path_args[@]}"
       shell: bash
     - run: echo "::remove-matcher owner=isort-matcher::"
       shell: bash

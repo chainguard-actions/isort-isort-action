@@ -1,0 +1,60 @@
+name: Test bad imports - isort detects unsorted imports
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create a badly-sorted Python file
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/tests/fixtures/py-bad"
+          cat > "$GITHUB_WORKSPACE/tests/fixtures/py-bad/bad.py" << 'EOF'
+          # These imports are improperly sorted and should fail isort
+          import time
+          from dataclasses import dataclass, field
+          import datetime
+
+          @dataclass()
+          class Foo:
+              a: datetime.datetime
+
+          foo = Foo(a=datetime.datetime.now())
+
+          if __name__ == "__main__":
+              print(foo)
+          EOF
+
+      - id: action
+        uses: .
+        with:
+          configuration: --check-only --diff
+          sort-paths: tests/fixtures/py-bad
+        continue-on-error: true
+
+      - name: Assert action detected unsorted imports (non-zero exit)
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+          ACTUAL: ${{ steps.action.outputs.isort-result }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "isort-result: $ACTUAL"
+          if [ "$OUTCOME" != "failure" ]; then
+            echo "FAIL: expected isort to fail on badly-sorted imports, but outcome was '$OUTCOME'"
+            exit 1
+          fi
+          echo "PASS: isort correctly detected unsorted imports"
+
+      - name: Assert isort-result output contains diff
+        env:
+          ACTUAL: ${{ steps.action.outputs.isort-result }}
+        run: |
+          echo "actual: $ACTUAL"
+          NORM="$(echo "$ACTUAL" | tr -d '[:space:]')"
+          if [ -z "$NORM" ] || [ "$NORM" = "{}" ] || [ "$NORM" = "null" ] \
+             || echo "$ACTUAL" | grep -qiE 'no .*(change|diff)'; then
+            echo "FAIL: expected a diff output but got empty/no-diff: $ACTUAL"
+            exit 1
+          fi
+          echo "PASS: isort-result contains diff output as expected"

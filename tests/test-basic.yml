@@ -1,0 +1,42 @@
+name: Test basic usage - well-sorted imports pass
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create a well-sorted Python file
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/tests/fixtures/py-good"
+          cat > "$GITHUB_WORKSPACE/tests/fixtures/py-good/good.py" << 'EOF'
+          import datetime
+          from dataclasses import dataclass
+
+
+          @dataclass()
+          class Foo:
+              a: datetime.datetime
+
+
+          foo = Foo(a=datetime.datetime.now())
+
+          if __name__ == "__main__":
+              print(foo)
+          EOF
+
+      - id: action
+        uses: .
+        with:
+          configuration: --check-only --diff
+          sort-paths: tests/fixtures/py-good
+
+      - name: Assert isort-result output exists
+        env:
+          ACTUAL: ${{ steps.action.outputs.isort-result }}
+        run: |
+          echo "actual: $ACTUAL"
+          # For a well-sorted file, isort --check-only --diff produces no output
+          # An empty result is the expected success case
+          echo "PASS: isort ran successfully on well-sorted file"

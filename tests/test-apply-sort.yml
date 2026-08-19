@@ -1,0 +1,53 @@
+name: Test apply sort - isort fixes imports in place
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create a badly-sorted Python file
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/tests/fixtures/py-apply"
+          cat > "$GITHUB_WORKSPACE/tests/fixtures/py-apply/unsorted.py" << 'EOF'
+          import time
+          import os
+          import sys
+
+          print(os.getcwd())
+          print(sys.version)
+          print(time.time())
+          EOF
+
+      - id: action
+        uses: .
+        with:
+          # Run without --check-only so isort actually sorts the file
+          configuration: ""
+          sort-paths: tests/fixtures/py-apply
+
+      - name: Assert action succeeded (apply mode)
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "outcome: $OUTCOME"
+          if [ "$OUTCOME" != "success" ]; then
+            echo "FAIL: expected isort apply to succeed, but outcome was '$OUTCOME'"
+            exit 1
+          fi
+          echo "PASS: isort applied sorting successfully"
+
+      - name: Assert file was sorted correctly
+        run: |
+          echo "File content after isort:"
+          cat "$GITHUB_WORKSPACE/tests/fixtures/py-apply/unsorted.py"
+          # After sorting, 'import os' should come before 'import sys' and 'import time'
+          # Check that the file now has sorted imports
+          FIRST_IMPORT=$(grep "^import" "$GITHUB_WORKSPACE/tests/fixtures/py-apply/unsorted.py" | head -1)
+          echo "First import line: $FIRST_IMPORT"
+          if [ "$FIRST_IMPORT" != "import os" ]; then
+            echo "FAIL: expected first import to be 'import os' after sorting, got '$FIRST_IMPORT'"
+            exit 1
+          fi
+          echo "PASS: imports are sorted correctly"
