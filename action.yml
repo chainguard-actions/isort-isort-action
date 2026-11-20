@@ -4,6 +4,7 @@ description: Run isort on a Python project
 branding:
   icon: check
   color: blue
+
 inputs:
   isort-version:
     description: Version of isort to use
@@ -14,12 +15,13 @@ inputs:
     #
     # TODO: Change to latest when dropping support for isortVersion.
     default: null
+
   isortVersion:
     description: >
       Version of isort to use (DEPRECATED: use isort-version instead)
-
     required: false
     default: latest
+
   sort-paths:
     description: files or directories to sort
     required: false
@@ -29,20 +31,22 @@ inputs:
     #
     # TODO: Change to . when dropping support for sortPaths.
     default: null
+
   sortPaths:
     description: >
       files or directories to sort (DEPRECATED: use sort-paths instead)
-
     required: false
     default: .
+
   configuration:
     description: isort configuration options
     required: false
     default: --check-only --diff
+
   requirements-files:
     description: >
-      path(s) to requirements files that should be installed to properly configure third-party imports
-
+      path(s) to requirements files that should be installed to properly
+      configure third-party imports
     required: false
     # Use default null to fallback to requirementsFiles with the expression:
     #
@@ -50,16 +54,19 @@ inputs:
     #
     # TODO: Change to "" when dropping support for requirementsFiles.
     default: null
+
   requirementsFiles:
     description: >
-      path(s) to requirements files that should be installed to properly configure third-party imports (DEPRECATED: use requirement-files instead)
-
+      path(s) to requirements files that should be installed to properly
+      configure third-party imports (DEPRECATED: use requirement-files instead)
     required: false
     default: ""
+
 outputs:
   isort-result:
     description: isort result
     value: ${{ steps.run-isort.outputs.isort-output }}
+
 runs:
   using: composite
   steps:
@@ -84,13 +91,18 @@ runs:
       shell: bash
     - run: >
         python -m venv "${HOME}/isort-venv"
-
       shell: bash
     - env:
         INPUT_ISORT_VERSION: ${{ inputs.isort-version || inputs.isortVersion }}
         INPUT_REQUIREMENTS_FILES: ${{ inputs.requirements-files || inputs.requirementsFiles }}
       run: |
-        "$GITHUB_ACTION_PATH/bin/install_packages" "$INPUT_ISORT_VERSION" "$INPUT_REQUIREMENTS_FILES"
+        req_args=()
+        if [ -n "$INPUT_REQUIREMENTS_FILES" ]; then
+          printf '%s' "$INPUT_REQUIREMENTS_FILES" | xargs -r true >/dev/null
+          while IFS= read -r -d '' t; do req_args+=("$t"); done \
+            < <(printf '%s' "$INPUT_REQUIREMENTS_FILES" | xargs -r sh -c 'printf "%s\0" "$@"' sh)
+        fi
+        "$GITHUB_ACTION_PATH/bin/install_packages" ${INPUT_ISORT_VERSION:+"$INPUT_ISORT_VERSION"} "${req_args[@]}"
       shell: bash
     - run: echo "::add-matcher::$GITHUB_ACTION_PATH/isort-matcher.json"
       shell: bash
@@ -101,13 +113,15 @@ runs:
       run: |
         cfg_args=()
         if [ -n "$INPUT_CONFIGURATION" ]; then
+          printf '%s' "$INPUT_CONFIGURATION" | xargs -r true >/dev/null
           while IFS= read -r -d '' t; do cfg_args+=("$t"); done \
-            < <(printf '%s' "$INPUT_CONFIGURATION" | xargs printf '%s\0')
+            < <(printf '%s' "$INPUT_CONFIGURATION" | xargs -r sh -c 'printf "%s\0" "$@"' sh)
         fi
         path_args=()
         if [ -n "$INPUT_SORT_PATHS" ]; then
+          printf '%s' "$INPUT_SORT_PATHS" | xargs -r true >/dev/null
           while IFS= read -r -d '' t; do path_args+=("$t"); done \
-            < <(printf '%s' "$INPUT_SORT_PATHS" | xargs printf '%s\0')
+            < <(printf '%s' "$INPUT_SORT_PATHS" | xargs -r sh -c 'printf "%s\0" "$@"' sh)
         fi
         "$GITHUB_ACTION_PATH/bin/run_isort" "${cfg_args[@]}" "${path_args[@]}"
       shell: bash
